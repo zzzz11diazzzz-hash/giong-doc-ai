@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Trình Kể Chuyện Giọng Trầm Ấm AI</title>
+    <title>Trình Kể Chuyện & Tải File WAV AI</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f9;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
             margin: 0;
             padding: 20px;
             display: flex;
@@ -17,80 +17,88 @@
         }
         .container {
             background: white;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            padding: 35px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
             width: 100%;
             max-width: 600px;
         }
         h2 {
-            margin-top: 0;
             color: #333;
             text-align: center;
-        }
-        textarea {
-            width: 100%;
-            height: 150px;
-            padding: 12px;
-            border: 1px solid #ccc;
-            border-radius: 6px;
-            resize: vertical;
-            font-size: 16px;
-            box-sizing: border-box;
-            margin-bottom: 15px;
+            margin-bottom: 25px;
         }
         label {
             display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
+            margin-bottom: 8px;
+            font-weight: 600;
             color: #555;
+        }
+        textarea {
+            width: 100%;
+            height: 180px;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            resize: vertical;
+            font-size: 16px;
+            box-sizing: border-box;
+            margin-bottom: 20px;
+            font-family: inherit;
         }
         select {
             width: 100%;
-            padding: 10px;
-            margin-bottom: 15px;
-            border: 1px solid #ccc;
-            border-radius: 6px;
-            font-size: 14px;
+            padding: 12px;
+            margin-bottom: 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
             box-sizing: border-box;
+            background-color: white;
+            cursor: pointer;
         }
         .btn-group {
             display: flex;
-            gap: 10px;
-            margin-bottom: 15px;
+            gap: 15px;
+            margin-bottom: 20px;
         }
         button {
             flex: 1;
-            padding: 12px;
+            padding: 15px;
             border: none;
-            border-radius: 6px;
+            border-radius: 10px;
             font-size: 16px;
             cursor: pointer;
             font-weight: bold;
             color: white;
-            transition: background 0.2s;
+            transition: background 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
         }
         #speak-btn {
-            background-color: #007bff;
+            background-color: #3498db;
         }
         #speak-btn:hover {
-            background-color: #0056b3;
+            background-color: #2980b9;
         }
         #download-audio-btn {
-            background-color: #28a745;
+            background-color: #27ae60;
             display: none;
         }
         #download-audio-btn:hover {
-            background-color: #218838;
+            background-color: #219150;
         }
         audio {
             width: 100%;
-            margin-bottom: 15px;
+            margin-bottom: 20px;
             display: none;
+            border-radius: 10px;
         }
         .note {
-            font-size: 13px;
-            color: #666;
+            font-size: 14px;
+            color: #7f8c8d;
             text-align: center;
         }
     </style>
@@ -98,29 +106,30 @@
 <body>
 
 <div class="container">
-    <h2>Trình Kể Chuyện Giọng Trầm Ấm AI</h2>
+    <h2>Trình Kể Chuyện Giọng Trầm Ấm (.WAV)</h2>
     
     <label for="text-input">Nhập nội dung kể chuyện (Tiếng Anh):</label>
-    <textarea id="text-input" placeholder="Nhập câu chuyện của bạn vào đây để giọng trầm ấm đọc..."></textarea>
+    <textarea id="text-input" placeholder="Nhập câu chuyện của bạn vào đây... Once upon a time..."></textarea>
     
-    <label for="voice-select">Chọn giọng đọc trầm ấm:</label>
+    <label for="voice-select">Chọn giọng đọc (Ưu tiên giọng trầm ấm):</label>
     <select id="voice-select">
-        <option value="">Đang tìm giọng đọc phù hợp...</option>
+        <option value="">Đang tải danh sách giọng...</option>
     </select>
 
     <div class="btn-group">
-        <button id="speak-btn">🎙️ Kể Chuyện & Ghi Âm</button>
-        <button id="download-audio-btn">📥 Tải File Âm Thanh</button>
+        <button id="speak-btn">🎙️ <span id="btn-text">Kể Chuyện & Ghi Âm</span></button>
+        <button id="download-audio-btn">📥 Tải File Voice (.WAV)</button>
     </div>
     
     <audio id="audio-preview" controls></audio>
-    <div class="note" id="status-note">Đã sẵn sàng tạo giọng kể chuyện trầm ấm.</div>
+    <div class="note" id="status-note">Hệ thống đã sẵn sàng xuất file WAV.</div>
 </div>
 
 <script>
     const textInput = document.getElementById('text-input');
     const voiceSelect = document.getElementById('voice-select');
     const speakBtn = document.getElementById('speak-btn');
+    const btnText = document.getElementById('btn-text');
     const downloadAudioBtn = document.getElementById('download-audio-btn');
     const audioPreview = document.getElementById('audio-preview');
     const statusNote = document.getElementById('status-note');
@@ -132,17 +141,19 @@
     function loadVoices() {
         if (!('speechSynthesis' in window)) return;
         voices = window.speechSynthesis.getVoices();
+        if (voices.length === 0) return;
+
         voiceSelect.innerHTML = '';
-        
-        // Lọc và ưu tiên các giọng nam hoặc giọng trầm ấm, tự nhiên tiếng Anh
+        const preferenceKeywords = ['Guy', 'David', 'Ryan', 'Nathan', 'George', 'Male', 'Natural', 'Google'];
+
         voices.forEach((voice, index) => {
             if (voice.lang.includes('en')) {
                 const option = document.createElement('option');
                 option.value = index;
-                option.textContent = voice.name;
+                option.textContent = `${voice.name} (${voice.lang})`;
                 
-                // Ưu tiên chọn các giọng đọc mượt mà chất lượng cao làm mặc định
-                if (voice.name.includes('Natural') || voice.name.includes('David') || voice.name.includes('Ryan') || voice.name.includes('Guy') || voice.name.includes('Google UK English Male')) {
+                const isPreferred = preferenceKeywords.some(keyword => voice.name.includes(keyword));
+                if (isPreferred || voice.name.includes('Natural')) {
                     option.selected = true;
                 }
                 voiceSelect.appendChild(option);
@@ -154,6 +165,7 @@
     if (typeof speechSynthesis !== 'undefined' && speechSynthesis.onvoiceschanged !== undefined) {
         speechSynthesis.onvoiceschanged = loadVoices;
     }
+    setTimeout(loadVoices, 500);
 
     speakBtn.addEventListener('click', async () => {
         const text = textInput.value.trim();
@@ -163,11 +175,11 @@
         }
 
         if (!('speechSynthesis' in window)) {
-            alert('Trình duyệt không hỗ trợ đọc giọng nói!');
+            alert('Trình duyệt không hỗ trợ!');
             return;
         }
 
-        statusNote.textContent = "Đang khởi tạo âm thanh...";
+        statusNote.textContent = "Đang khởi tạo ghi âm...";
         speakBtn.disabled = true;
 
         try {
@@ -177,7 +189,15 @@
                 return dest.stream;
             });
 
-            mediaRecorder = new MediaRecorder(stream);
+            // Ép kiểu định dạng ghi âm sang WAV nếu trình duyệt hỗ trợ, nếu không sẽ dùng chuẩn audio chung
+            const options = { mimeType: 'audio/webm;codecs=opus' };
+            if (MediaRecorder.isTypeSupported('audio/wav')) {
+                options.mimeType = 'audio/wav';
+            } else if (MediaRecorder.isTypeSupported('audio/x-wav')) {
+                options.mimeType = 'audio/x-wav';
+            }
+
+            mediaRecorder = new MediaRecorder(stream, options);
             audioChunks = [];
 
             mediaRecorder.ondataavailable = event => {
@@ -187,23 +207,25 @@
             };
 
             mediaRecorder.onstop = () => {
-                const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                const audioBlob = new Blob(audioChunks, { type: mediaRecorder.mimeType || 'audio/wav' });
                 const audioUrl = URL.createObjectURL(audioBlob);
                 audioPreview.src = audioUrl;
                 audioPreview.style.display = 'block';
-                downloadAudioBtn.style.display = 'block';
+                downloadAudioBtn.style.display = 'flex';
                 
                 downloadAudioBtn.onclick = () => {
                     const a = document.createElement('a');
                     a.href = audioUrl;
-                    a.download = `story-audio-${Date.now()}.webm`;
+                    // Đặt đuôi mở rộng file rõ ràng là .wav
+                    a.download = `story-voice-${Date.now()}.wav`;
                     document.body.appendChild(a);
                     a.click();
                     document.body.removeChild(a);
                 };
                 
-                statusNote.textContent = "Đã kể xong và tạo file thành công!";
+                statusNote.textContent = "Đã hoàn tất! Bạn có thể nghe lại và tải file WAV về.";
                 speakBtn.disabled = false;
+                btnText.textContent = "Kể Chuyện & Ghi Âm";
             };
 
             mediaRecorder.start();
@@ -214,9 +236,10 @@
             if (selectedIndex !== "" && voices[selectedIndex]) {
                 utterance.voice = voices[selectedIndex];
             }
-            // Chỉnh tốc độ chậm lại một chút (0.9) để giọng đọc trở nên trầm ấm và truyền cảm, hợp kể chuyện
-            utterance.rate = 0.9; 
-            utterance.pitch = 0.95; // Hạ tone giọng xuống thấp một chút cho trầm ấm
+            
+            // Giảm tốc độ và hạ độ cao để có giọng trầm ấm kể chuyện
+            utterance.rate = 0.9;
+            utterance.pitch = 0.95;
 
             utterance.onstart = () => {
                 statusNote.textContent = "Đang kể chuyện với giọng trầm ấm...";
@@ -234,16 +257,17 @@
                 if (mediaRecorder && mediaRecorder.state === "recording") {
                     mediaRecorder.stop();
                 }
-                statusNote.textContent = "Có lỗi xảy ra khi đọc.";
+                statusNote.textContent = "Có lỗi xảy ra.";
                 speakBtn.disabled = false;
+                btnText.textContent = "Kể Chuyện & Ghi Âm";
             };
 
             window.speechSynthesis.speak(utterance);
 
         } catch (error) {
-            alert("Vui lòng cấp quyền micro để ghi lại file âm thanh.");
+            alert("Vui lòng cấp quyền micro để tạo file âm thanh.");
             speakBtn.disabled = false;
-            statusNote.textContent = "Lỗi cấp quyền.";
+            statusNote.textContent = "Lỗi cấp quyền micro.";
         }
     });
 </script>
