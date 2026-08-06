@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chuyển Văn Bản Thành Giọng Đọc AI</title>
+    <title>Trình Kể Chuyện Giọng Trầm Ấm AI</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -57,6 +57,7 @@
         .btn-group {
             display: flex;
             gap: 10px;
+            margin-bottom: 15px;
         }
         button {
             flex: 1;
@@ -75,16 +76,21 @@
         #speak-btn:hover {
             background-color: #0056b3;
         }
-        #download-btn {
+        #download-audio-btn {
             background-color: #28a745;
+            display: none;
         }
-        #download-btn:hover {
+        #download-audio-btn:hover {
             background-color: #218838;
+        }
+        audio {
+            width: 100%;
+            margin-bottom: 15px;
+            display: none;
         }
         .note {
             font-size: 13px;
             color: #666;
-            margin-top: 15px;
             text-align: center;
         }
     </style>
@@ -92,88 +98,153 @@
 <body>
 
 <div class="container">
-    <h2>Chuyển Văn Bản Thành Giọng Đọc AI</h2>
+    <h2>Trình Kể Chuyện Giọng Trầm Ấm AI</h2>
     
-    <label for="text-input">Nhập nội dung:</label>
-    <textarea id="text-input" placeholder="Nhập văn bản bạn muốn đọc..."></textarea>
+    <label for="text-input">Nhập nội dung kể chuyện (Tiếng Anh):</label>
+    <textarea id="text-input" placeholder="Nhập câu chuyện của bạn vào đây để giọng trầm ấm đọc..."></textarea>
     
-    <label for="voice-select">Chọn giọng đọc AI:</label>
+    <label for="voice-select">Chọn giọng đọc trầm ấm:</label>
     <select id="voice-select">
-        <optgroup label="Tiếng Anh (Giọng tự nhiên)">
-            <option value="en" selected>Tiếng Anh Chuẩn (Hỗ trợ đọc mượt mà)</option>
-        </optgroup>
-        <optgroup label="Tiếng Việt">
-            <option value="vi">Tiếng Việt Chuẩn</option>
-        </optgroup>
+        <option value="">Đang tìm giọng đọc phù hợp...</option>
     </select>
 
     <div class="btn-group">
-        <button id="speak-btn">🔊 Phát Âm</button>
-        <button id="download-btn">📥 Lưu Văn Bản</button>
+        <button id="speak-btn">🎙️ Kể Chuyện & Ghi Âm</button>
+        <button id="download-audio-btn">📥 Tải File Âm Thanh</button>
     </div>
     
-    <div class="note" id="status-note">Sẵn sàng đọc văn bản.</div>
+    <audio id="audio-preview" controls></audio>
+    <div class="note" id="status-note">Đã sẵn sàng tạo giọng kể chuyện trầm ấm.</div>
 </div>
 
 <script>
     const textInput = document.getElementById('text-input');
     const voiceSelect = document.getElementById('voice-select');
     const speakBtn = document.getElementById('speak-btn');
-    const downloadBtn = document.getElementById('download-btn');
+    const downloadAudioBtn = document.getElementById('download-audio-btn');
+    const audioPreview = document.getElementById('audio-preview');
     const statusNote = document.getElementById('status-note');
 
-    speakBtn.addEventListener('click', () => {
+    let voices = [];
+    let audioChunks = [];
+    let mediaRecorder;
+
+    function loadVoices() {
+        if (!('speechSynthesis' in window)) return;
+        voices = window.speechSynthesis.getVoices();
+        voiceSelect.innerHTML = '';
+        
+        // Lọc và ưu tiên các giọng nam hoặc giọng trầm ấm, tự nhiên tiếng Anh
+        voices.forEach((voice, index) => {
+            if (voice.lang.includes('en')) {
+                const option = document.createElement('option');
+                option.value = index;
+                option.textContent = voice.name;
+                
+                // Ưu tiên chọn các giọng đọc mượt mà chất lượng cao làm mặc định
+                if (voice.name.includes('Natural') || voice.name.includes('David') || voice.name.includes('Ryan') || voice.name.includes('Guy') || voice.name.includes('Google UK English Male')) {
+                    option.selected = true;
+                }
+                voiceSelect.appendChild(option);
+            }
+        });
+    }
+
+    loadVoices();
+    if (typeof speechSynthesis !== 'undefined' && speechSynthesis.onvoiceschanged !== undefined) {
+        speechSynthesis.onvoiceschanged = loadVoices;
+    }
+
+    speakBtn.addEventListener('click', async () => {
         const text = textInput.value.trim();
         if (!text) {
-            alert('Vui lòng nhập văn bản trước!');
+            alert('Vui lòng nhập nội dung câu chuyện!');
             return;
         }
 
         if (!('speechSynthesis' in window)) {
-            alert('Trình duyệt của bạn không hỗ trợ giọng đọc!');
+            alert('Trình duyệt không hỗ trợ đọc giọng nói!');
             return;
         }
 
-        window.speechSynthesis.cancel();
-        
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = voiceSelect.value === 'vi' ? 'vi-VN' : 'en-US';
-        utterance.rate = 1.0;
+        statusNote.textContent = "Đang khởi tạo âm thanh...";
+        speakBtn.disabled = true;
 
-        utterance.onstart = () => {
-            statusNote.textContent = "Đang đọc...";
-        };
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true }).catch(() => {
+                const ctx = new AudioContext();
+                const dest = ctx.createMediaStreamDestination();
+                return dest.stream;
+            });
 
-        utterance.onend = () => {
-            statusNote.textContent = "Đã đọc xong!";
-        };
+            mediaRecorder = new MediaRecorder(stream);
+            audioChunks = [];
 
-        utterance.onerror = () => {
-            alert('Có lỗi xảy ra khi phát âm thanh.');
-            statusNote.textContent = "Lỗi phát âm.";
-        };
+            mediaRecorder.ondataavailable = event => {
+                if (event.data.size > 0) {
+                    audioChunks.push(event.data);
+                }
+            };
 
-        window.speechSynthesis.speak(utterance);
-    });
+            mediaRecorder.onstop = () => {
+                const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                const audioUrl = URL.createObjectURL(audioBlob);
+                audioPreview.src = audioUrl;
+                audioPreview.style.display = 'block';
+                downloadAudioBtn.style.display = 'block';
+                
+                downloadAudioBtn.onclick = () => {
+                    const a = document.createElement('a');
+                    a.href = audioUrl;
+                    a.download = `story-audio-${Date.now()}.webm`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                };
+                
+                statusNote.textContent = "Đã kể xong và tạo file thành công!";
+                speakBtn.disabled = false;
+            };
 
-    downloadBtn.addEventListener('click', () => {
-        const text = textInput.value.trim();
-        if (!text) {
-            alert('Vui lòng nhập nội dung để lưu!');
-            return;
+            mediaRecorder.start();
+
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            const selectedIndex = voiceSelect.value;
+            if (selectedIndex !== "" && voices[selectedIndex]) {
+                utterance.voice = voices[selectedIndex];
+            }
+            // Chỉnh tốc độ chậm lại một chút (0.9) để giọng đọc trở nên trầm ấm và truyền cảm, hợp kể chuyện
+            utterance.rate = 0.9; 
+            utterance.pitch = 0.95; // Hạ tone giọng xuống thấp một chút cho trầm ấm
+
+            utterance.onstart = () => {
+                statusNote.textContent = "Đang kể chuyện với giọng trầm ấm...";
+            };
+
+            utterance.onend = () => {
+                setTimeout(() => {
+                    if (mediaRecorder && mediaRecorder.state === "recording") {
+                        mediaRecorder.stop();
+                    }
+                }, 500);
+            };
+
+            utterance.onerror = () => {
+                if (mediaRecorder && mediaRecorder.state === "recording") {
+                    mediaRecorder.stop();
+                }
+                statusNote.textContent = "Có lỗi xảy ra khi đọc.";
+                speakBtn.disabled = false;
+            };
+
+            window.speechSynthesis.speak(utterance);
+
+        } catch (error) {
+            alert("Vui lòng cấp quyền micro để ghi lại file âm thanh.");
+            speakBtn.disabled = false;
+            statusNote.textContent = "Lỗi cấp quyền.";
         }
-
-        const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `van-ban-${Date.now()}.txt`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-
-        statusNote.textContent = "Đã tải file văn bản xuống máy thành công!";
     });
 </script>
 
