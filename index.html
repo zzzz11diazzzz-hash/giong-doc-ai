@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Trang Web Giọng Đọc AI Cao Cấp</title>
+    <title>Chuyển Văn Bản Thành Giọng Đọc AI</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -54,8 +54,12 @@
             font-size: 14px;
             box-sizing: border-box;
         }
+        .btn-group {
+            display: flex;
+            gap: 10px;
+        }
         button {
-            width: 100%;
+            flex: 1;
             padding: 12px;
             border: none;
             border-radius: 6px;
@@ -63,15 +67,25 @@
             cursor: pointer;
             font-weight: bold;
             color: white;
-            background-color: #007bff;
             transition: background 0.2s;
         }
-        button:hover {
+        #speak-btn {
+            background-color: #007bff;
+        }
+        #speak-btn:hover {
             background-color: #0056b3;
         }
-        audio {
-            width: 100%;
+        #download-btn {
+            background-color: #28a745;
+        }
+        #download-btn:hover {
+            background-color: #218838;
+        }
+        .note {
+            font-size: 13px;
+            color: #666;
             margin-top: 15px;
+            text-align: center;
         }
     </style>
 </head>
@@ -80,72 +94,86 @@
 <div class="container">
     <h2>Chuyển Văn Bản Thành Giọng Đọc AI</h2>
     
-    <label for="text-input">Nhập văn bản:</label>
-    <textarea id="text-input" placeholder="Nhập nội dung bạn muốn chuyển đổi vào đây..."></textarea>
+    <label for="text-input">Nhập nội dung:</label>
+    <textarea id="text-input" placeholder="Nhập văn bản bạn muốn đọc..."></textarea>
     
     <label for="voice-select">Chọn giọng đọc AI:</label>
     <select id="voice-select">
         <optgroup label="Tiếng Anh (Giọng tự nhiên)">
-            <option value="en-US-AndrewNeural">Andrew (Nam - Tự nhiên)</option>
-            <option value="en-US-AriaNeural" selected>Aria (Nữ - Mượt mà)</option>
-            <option value="en-US-BrianNeural">Brian (Nam - Trầm ấm)</option>
-            <option value="en-US-JennyNeural">Jenny (Nữ - Truyền cảm)</option>
+            <option value="en" selected>Tiếng Anh Chuẩn (Hỗ trợ đọc mượt mà)</option>
         </optgroup>
         <optgroup label="Tiếng Việt">
-            <option value="vi-VN-HoaiMyNeural">Hoài My (Nữ Việt Nam)</option>
-            <option value="vi-VN-NamMinhNeural">Nam Minh (Nam Việt Nam)</option>
+            <option value="vi">Tiếng Việt Chuẩn</option>
         </optgroup>
     </select>
 
-    <button id="convert-btn">🎙️ Tạo Giọng Đọc & Tải Về</button>
+    <div class="btn-group">
+        <button id="speak-btn">🔊 Phát Âm</button>
+        <button id="download-btn">📥 Lưu Văn Bản</button>
+    </div>
     
-    <audio id="audio-player" controls style="display:none;"></audio>
+    <div class="note" id="status-note">Sẵn sàng đọc văn bản.</div>
 </div>
 
 <script>
     const textInput = document.getElementById('text-input');
     const voiceSelect = document.getElementById('voice-select');
-    const convertBtn = document.getElementById('convert-btn');
-    const audioPlayer = document.getElementById('audio-player');
+    const speakBtn = document.getElementById('speak-btn');
+    const downloadBtn = document.getElementById('download-btn');
+    const statusNote = document.getElementById('status-note');
 
-    convertBtn.addEventListener('click', async () => {
+    speakBtn.addEventListener('click', () => {
         const text = textInput.value.trim();
-        const voice = voiceSelect.value;
-        
         if (!text) {
-            alert('Vui lòng nhập văn bản!');
+            alert('Vui lòng nhập văn bản trước!');
             return;
         }
 
-        convertBtn.textContent = 'Đang xử lý giọng AI...';
-        convertBtn.disabled = true;
-
-        try {
-            // Sử dụng dịch vụ công khai hỗ trợ tổng hợp giọng đọc AI chất lượng cao
-            const response = await fetch(`https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(text)}&tl=en&client=tw-ob`);
-            
-            // Sử dụng SpeechSynthesis cải tiến trực tiếp trên trình duyệt với cấu hình giọng mượt nhất
-            const synth = window.speechSynthesis;
-            synth.cancel();
-            
-            const utterance = new SpeechSynthesisUtterance(text);
-            const voices = synth.getVoices();
-            
-            // Tìm giọng phù hợp hoặc lấy giọng đầu tiên
-            const selectedVoice = voices.find(v => v.lang.includes(voice.startsWith('en') ? 'en' : 'vi'));
-            if (selectedVoice) utterance.voice = selectedVoice;
-            
-            utterance.rate = 1.0;
-            
-            synth.speak(utterance);
-            convertBtn.textContent = '🎙️ Tạo Giọng Đọc & Tải Về';
-            convertBtn.disabled = false;
-            
-        } catch (error) {
-            alert('Có lỗi xảy ra, vui lòng thử lại.');
-            convertBtn.textContent = '🎙️ Tạo Giọng Đọc & Tải Về';
-            convertBtn.disabled = false;
+        if (!('speechSynthesis' in window)) {
+            alert('Trình duyệt của bạn không hỗ trợ giọng đọc!');
+            return;
         }
+
+        window.speechSynthesis.cancel();
+        
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = voiceSelect.value === 'vi' ? 'vi-VN' : 'en-US';
+        utterance.rate = 1.0;
+
+        utterance.onstart = () => {
+            statusNote.textContent = "Đang đọc...";
+        };
+
+        utterance.onend = () => {
+            statusNote.textContent = "Đã đọc xong!";
+        };
+
+        utterance.onerror = () => {
+            alert('Có lỗi xảy ra khi phát âm thanh.');
+            statusNote.textContent = "Lỗi phát âm.";
+        };
+
+        window.speechSynthesis.speak(utterance);
+    });
+
+    downloadBtn.addEventListener('click', () => {
+        const text = textInput.value.trim();
+        if (!text) {
+            alert('Vui lòng nhập nội dung để lưu!');
+            return;
+        }
+
+        const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `van-ban-${Date.now()}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        statusNote.textContent = "Đã tải file văn bản xuống máy thành công!";
     });
 </script>
 
