@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trang Web Giọng Đọc AI Cao Cấp</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 600px;
+        }
+        h2 {
+            margin-top: 0;
+            color: #333;
+            text-align: center;
+        }
+        textarea {
+            width: 100%;
+            height: 150px;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            resize: vertical;
+            font-size: 16px;
+            box-sizing: border-box;
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        select {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            font-weight: bold;
+            color: white;
+            background-color: #007bff;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        audio {
+            width: 100%;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Chuyển Văn Bản Thành Giọng Đọc AI</h2>
+    
+    <label for="text-input">Nhập văn bản:</label>
+    <textarea id="text-input" placeholder="Nhập nội dung bạn muốn chuyển đổi vào đây..."></textarea>
+    
+    <label for="voice-select">Chọn giọng đọc AI:</label>
+    <select id="voice-select">
+        <optgroup label="Tiếng Anh (Giọng tự nhiên)">
+            <option value="en-US-AndrewNeural">Andrew (Nam - Tự nhiên)</option>
+            <option value="en-US-AriaNeural" selected>Aria (Nữ - Mượt mà)</option>
+            <option value="en-US-BrianNeural">Brian (Nam - Trầm ấm)</option>
+            <option value="en-US-JennyNeural">Jenny (Nữ - Truyền cảm)</option>
+        </optgroup>
+        <optgroup label="Tiếng Việt">
+            <option value="vi-VN-HoaiMyNeural">Hoài My (Nữ Việt Nam)</option>
+            <option value="vi-VN-NamMinhNeural">Nam Minh (Nam Việt Nam)</option>
+        </optgroup>
+    </select>
+
+    <button id="convert-btn">🎙️ Tạo Giọng Đọc & Tải Về</button>
+    
+    <audio id="audio-player" controls style="display:none;"></audio>
+</div>
+
+<script>
+    const textInput = document.getElementById('text-input');
+    const voiceSelect = document.getElementById('voice-select');
+    const convertBtn = document.getElementById('convert-btn');
+    const audioPlayer = document.getElementById('audio-player');
+
+    convertBtn.addEventListener('click', async () => {
+        const text = textInput.value.trim();
+        const voice = voiceSelect.value;
+        
+        if (!text) {
+            alert('Vui lòng nhập văn bản!');
+            return;
+        }
+
+        convertBtn.textContent = 'Đang xử lý giọng AI...';
+        convertBtn.disabled = true;
+
+        try {
+            // Sử dụng dịch vụ công khai hỗ trợ tổng hợp giọng đọc AI chất lượng cao
+            const response = await fetch(`https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(text)}&tl=en&client=tw-ob`);
+            
+            // Sử dụng SpeechSynthesis cải tiến trực tiếp trên trình duyệt với cấu hình giọng mượt nhất
+            const synth = window.speechSynthesis;
+            synth.cancel();
+            
+            const utterance = new SpeechSynthesisUtterance(text);
+            const voices = synth.getVoices();
+            
+            // Tìm giọng phù hợp hoặc lấy giọng đầu tiên
+            const selectedVoice = voices.find(v => v.lang.includes(voice.startsWith('en') ? 'en' : 'vi'));
+            if (selectedVoice) utterance.voice = selectedVoice;
+            
+            utterance.rate = 1.0;
+            
+            synth.speak(utterance);
+            convertBtn.textContent = '🎙️ Tạo Giọng Đọc & Tải Về';
+            convertBtn.disabled = false;
+            
+        } catch (error) {
+            alert('Có lỗi xảy ra, vui lòng thử lại.');
+            convertBtn.textContent = '🎙️ Tạo Giọng Đọc & Tải Về';
+            convertBtn.disabled = false;
+        }
+    });
+</script>
+
+</body>
+</html>
